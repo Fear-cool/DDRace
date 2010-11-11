@@ -156,6 +156,13 @@ private:
 	// checkpoints
 	int m_CpTick;
 	int m_CpActive;
+
+	//frace
+	int m_FreezeTime;
+	int m_FreezeTick;
+	bool Freeze();
+	bool UnFreeze();
+
 };
 
 #endif

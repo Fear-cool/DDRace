@@ -6,8 +6,7 @@
 #include <game/server/score.h>
 #include <game/mapitems.h>
 
-#include "../gamemodes/race.h"
-#include "../gamemodes/fastcap.h"
+#include "../gamemodes/frace.h"
 
 #include "character.h"
 #include "flag.h"
@@ -285,7 +284,7 @@ void CCharacter::FireWeapon()
 	if(FullAuto && (m_LatestInput.m_Fire&1) && m_aWeapons[m_ActiveWeapon].m_Ammo)
 		WillFire = true;
 		
-	if(!WillFire)
+	if(!WillFire || m_FreezeTime)
 		return;
 		
 	// check for ammo
@@ -307,7 +306,7 @@ void CCharacter::FireWeapon()
 			m_NumObjectsHit = 0;
 			GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, CmaskRace(GameServer(), m_pPlayer->GetCID()));
 			
-			/*CCharacter *aEnts[64];
+			CCharacter *aEnts[64];
 			int Hits = 0;
 			int Num = GameServer()->m_World.FindEntities(ProjStartPos, m_ProximityRadius*0.5f, (CEntity**)aEnts, 
 			64, NETOBJTYPE_CHARACTER);
@@ -317,7 +316,7 @@ void CCharacter::FireWeapon()
 				CCharacter *Target = aEnts[i];
 				
 				//for race mod or any other mod, which needs hammer hits through the wall remove second condition
-				if ((Target == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, Target->m_Pos, NULL, NULL))
+				if ((Target == this)/* || GameServer()->Collision()->IntersectLine(ProjStartPos, Target->m_Pos, NULL, NULL)*/)
 					continue;
 
 				// set his velocity to fast upward (for now)
@@ -331,12 +330,13 @@ void CCharacter::FireWeapon()
 					Dir = vec2(0.f, -1.f);
 					
 				Target->m_Core.m_Vel += normalize(Dir + vec2(0.f, -1.1f)) * 10.0f;
+				Target->UnFreeze();
 				Hits++;
 			}
 			
 			// if we Hit anything, we have to wait for the reload
 			if(Hits)
-				m_ReloadTimer = Server()->TickSpeed()/3;*/
+				m_ReloadTimer = Server()->TickSpeed()/3;
 			
 		} break;
 
@@ -496,8 +496,8 @@ bool CCharacter::GiveWeapon(int Weapon, int Ammo)
 	if(m_aWeapons[Weapon].m_Ammo < g_pData->m_Weapons.m_aId[Weapon].m_Maxammo || !m_aWeapons[Weapon].m_Got)
 	{	
 		m_aWeapons[Weapon].m_Got = true;
-		m_aWeapons[Weapon].m_Ammo = min(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
-		return true;
+		if(!m_FreezeTime) m_aWeapons[Weapon].m_Ammo = min(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
+			return true;
 	}
 	return false;
 }
@@ -506,7 +506,7 @@ void CCharacter::GiveNinja()
 {
 	m_Ninja.m_ActivationTick = Server()->Tick();
 	m_aWeapons[WEAPON_NINJA].m_Got = true;
-	m_aWeapons[WEAPON_NINJA].m_Ammo = -1;
+	if (!m_FreezeTime) m_aWeapons[WEAPON_NINJA].m_Ammo = -1;
 	m_LastWeapon = m_ActiveWeapon;
 	m_ActiveWeapon = WEAPON_NINJA;
 	
@@ -548,8 +548,65 @@ void CCharacter::OnDirectInput(CNetObj_PlayerInput *pNewInput)
 	mem_copy(&m_LatestPrevInput, &m_LatestInput, sizeof(m_LatestInput));
 }
 
+bool CCharacter::Freeze()
+{
+	int Time = Server()->TickSpeed()*3;
+	if (Time <= 1 || m_FreezeTime == -1)
+		 return false;
+	if (m_FreezeTick < Server()->Tick() - Server()->TickSpeed())
+	{
+		for(int i=0;i<NUM_WEAPONS;i++)
+			if(m_aWeapons[i].m_Got)
+			 {
+				 m_aWeapons[i].m_Ammo = 0;
+			 }
+		m_Armor=0;
+		m_Ninja.m_ActivationTick = Server()->Tick();
+		m_FreezeTime=Time;
+		m_FreezeTick=Server()->Tick();
+		return true;
+	}
+	return false;
+}
+
+bool CCharacter::UnFreeze()
+{
+	if (m_FreezeTime>0)
+	{
+		m_Armor=10;
+		for(int i=0;i<NUM_WEAPONS;i++)
+			if(m_aWeapons[i].m_Got)
+			 {
+				 m_aWeapons[i].m_Ammo = -1;
+			 }
+		if(!m_aWeapons[m_ActiveWeapon].m_Got)
+			m_ActiveWeapon = WEAPON_GUN;
+		m_FreezeTime = 0;
+		m_FreezeTick = 0;
+		m_ReloadTimer = 0;
+		 return true;
+	}
+	return false;
+}
+
 void CCharacter::Tick()
 {
+	m_Armor=(m_FreezeTime != -1)?10-(m_FreezeTime/15):0;
+	if(m_FreezeTime > 0 || m_FreezeTime == -1)
+	{
+		if(m_FreezeTime != -1)
+			m_FreezeTime--;
+		else
+			m_Ninja.m_ActivationTick = Server()->Tick();
+		m_Input.m_Direction = 0;
+		m_Input.m_Jump = 0;
+		m_Input.m_Hook = 0;
+
+		//m_Input.m_Fire = 0;
+		if (m_FreezeTime == 1) {
+			UnFreeze();
+		}
+	}
 	if(m_pPlayer->m_ForceBalanced)
 	{
 		char Buf[128];
@@ -631,45 +688,18 @@ void CCharacter::Tick()
 			m_Armor++;
 	}
 	
-	if((GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_BEGIN && (!m_aWeapons[WEAPON_GRENADE].m_Got || (m_RaceState != RACE_FINISHED && m_RaceState != RACE_STARTED)))
-		|| (GameServer()->m_pController->IsFastCap() && m_RaceState != RACE_STARTED && ((CGameControllerFC*)GameServer()->m_pController)->IsEnemyFlagStand(m_Pos, m_pPlayer->GetTeam())))
+	if((GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_BEGIN && (!m_aWeapons[WEAPON_GRENADE].m_Got || (m_RaceState != RACE_FINISHED && m_RaceState != RACE_STARTED))))
 	{
-		// create flag
-		if(GameServer()->m_pController->IsFastCap())
-		{
-			m_pFlag = new CFlag(GameWorld(), (m_pPlayer->GetTeam()+1)&1, m_Pos, this);
-			
-			// sound
-			GameServer()->CreateSoundGlobal(SOUND_CTF_GRAB_EN, m_pPlayer->GetCID());
-		}
-			
 		// reset pickups
 		if(!m_aWeapons[WEAPON_GRENADE].m_Got)
 			m_pPlayer->m_ResetPickups = true;
-			
-		// reset shield
-		if(!GameServer()->m_pController->IsFastCap())
-			m_Armor = 0;
 			
 		m_Starttime = Server()->Tick();
 		m_Refreshtime = Server()->Tick();
 		m_RaceState = RACE_STARTED;
 	}
-	else if((GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_END || (GameServer()->m_pController->IsFastCap() && ((CGameControllerFC*)GameServer()->m_pController)->IsOwnFlagStand(m_Pos, m_pPlayer->GetTeam()))) && m_RaceState == RACE_STARTED)
+	else if((GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_END) && m_RaceState == RACE_STARTED)
 	{
-		// reset the flag
-		if(GameServer()->m_pController->IsFastCap() && m_pFlag)
-		{
-			m_pFlag->Reset();
-			m_pFlag = 0;
-			
-			// reset pickups
-			m_pPlayer->m_ResetPickups = true;
-			
-			// sound \o/
-			GameServer()->CreateSoundGlobal(SOUND_CTF_CAPTURE, m_pPlayer->GetCID());
-		}
-		
 		char aBuf[128];
 		str_format(aBuf, sizeof(aBuf), "%s finished in: %d minute(s) %5.2f second(s)", Server()->ClientName(m_pPlayer->GetCID()), (int)Time/60, Time-((int)Time/60*60));
 		if(!g_Config.m_SvShowTimes)
@@ -734,6 +764,14 @@ void CCharacter::Tick()
 		int TTime = 0-(int)Time;
 		if(m_pPlayer->m_Score < TTime)
 			m_pPlayer->m_Score = TTime;
+	}
+	else if(GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_FREEZE)
+	{
+		Freeze();
+	}
+	else if(GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_UNFREEZE)
+	{
+		UnFreeze();
 	}
 	else if(TileIndex != -1 && GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_STOPL)
 	{
@@ -802,7 +840,7 @@ void CCharacter::Tick()
 		m_Core.m_HookState = HOOK_RETRACTED;
 		m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 		m_Core.m_HookState = HOOK_RETRACTED;
-		m_Core.m_Pos = ((CGameControllerRACE*)GameServer()->m_pController)->m_pTeleporter[z-1];
+		m_Core.m_Pos = ((CGameControllerFRACE*)GameServer()->m_pController)->m_pTeleporter[z-1];
 		m_Core.m_HookPos = m_Core.m_Pos;
 		//Resetting velocity to prevent exploit
 		if(g_Config.m_SvTeleportVelReset)
@@ -989,7 +1027,7 @@ void CCharacter::Die(int Killer, int Weapon)
 
 bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 {
-	if(From == m_pPlayer->GetCID())
+	//if(From == m_pPlayer->GetCID())
 		m_Core.m_Vel += Force;
 	
 	if(GameServer()->m_pController->IsFriendlyFire(m_pPlayer->GetCID(), From) && !g_Config.m_SvTeamdamage)
@@ -1111,7 +1149,14 @@ void CCharacter::Snap(int SnappingClient)
 	Character->m_Health = 0;
 	Character->m_Armor = 0;
 	
-	Character->m_Weapon = m_ActiveWeapon;
+	if (m_FreezeTime > 0 || m_FreezeTime == -1)
+	{
+		Character->m_Emote = EMOTE_BLINK;
+		Character->m_Weapon = WEAPON_NINJA;
+		Character->m_AmmoCount = 0;
+	}
+	else
+		Character->m_Weapon = m_ActiveWeapon;
 	Character->m_AttackTick = m_AttackTick;
 
 	Character->m_Direction = m_Input.m_Direction;
@@ -1121,7 +1166,7 @@ void CCharacter::Snap(int SnappingClient)
 		Character->m_Health = m_Health;
 		Character->m_Armor = m_Armor;
 		if(m_aWeapons[m_ActiveWeapon].m_Ammo > 0)
-			Character->m_AmmoCount = m_aWeapons[m_ActiveWeapon].m_Ammo;
+			Character->m_AmmoCount = (!m_FreezeTime)?m_aWeapons[m_ActiveWeapon].m_Ammo:0;
 	}
 
 	if (Character->m_Emote == EMOTE_NORMAL)

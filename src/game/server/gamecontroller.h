@@ -145,9 +145,6 @@ public:
 	int ClampTeam(int Team);
 
 	virtual void PostReset();
-	
-	// fast cap
-	virtual bool IsFastCap() { return false; }
 };
 
 #endif

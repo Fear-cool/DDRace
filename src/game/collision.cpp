@@ -55,7 +55,7 @@ void CCollision::Init(class CLayers *pLayers)
 		}
 		
 		// race tiles
-		if(Index >= 28 && Index <= 59)
+		if(Index >= 28 && Index <= 59 || Index == TILE_FREEZE || Index == TILE_UNFREEZE)
 			m_pTiles[i].m_Index = Index;
 	}
 }
@@ -86,7 +86,7 @@ int CCollision::GetIndex(vec2 PrevPos, vec2 Pos)
 		int nx = clamp((int)Pos.x/32, 0, m_Width-1);
 		int ny = clamp((int)Pos.y/32, 0, m_Height-1);
 		
-		if((m_pTiles[ny*m_Width+nx].m_Index >= TILE_STOPL && m_pTiles[ny*m_Width+nx].m_Index <= 59) ||
+		if((m_pTiles[ny*m_Width+nx].m_Index >= TILE_STOPL && m_pTiles[ny*m_Width+nx].m_Index <= 59)  || m_pTiles[ny*m_Width+nx].m_Index == TILE_FREEZE || m_pTiles[ny*m_Width+nx].m_Index == TILE_UNFREEZE ||
 			(m_pTele && (m_pTele[ny*m_Width+nx].m_Type == TILE_TELEIN || m_pTele[ny*m_Width+nx].m_Type == TILE_TELEOUT)) ||
 			(m_pSpeedup && m_pSpeedup[ny*m_Width+nx].m_Force > 0))
 		{
@@ -105,7 +105,7 @@ int CCollision::GetIndex(vec2 PrevPos, vec2 Pos)
 		Tmp = mix(PrevPos, Pos, a);
 		nx = clamp((int)Tmp.x/32, 0, m_Width-1);
 		ny = clamp((int)Tmp.y/32, 0, m_Height-1);
-		if((m_pTiles[ny*m_Width+nx].m_Index >= TILE_STOPL && m_pTiles[ny*m_Width+nx].m_Index <= 59) ||
+		if((m_pTiles[ny*m_Width+nx].m_Index >= TILE_STOPL && m_pTiles[ny*m_Width+nx].m_Index <= 59)  || m_pTiles[ny*m_Width+nx].m_Index == TILE_FREEZE || m_pTiles[ny*m_Width+nx].m_Index == TILE_UNFREEZE ||
 			(m_pTele && (m_pTele[ny*m_Width+nx].m_Type == TILE_TELEIN || m_pTele[ny*m_Width+nx].m_Type == TILE_TELEOUT)) ||
 			(m_pSpeedup && m_pSpeedup[ny*m_Width+nx].m_Force > 0))
 		{

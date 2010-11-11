@@ -3,7 +3,7 @@
 
 #include <engine/shared/config.h>
 #include "../entities/character.h"
-#include "../gamemodes/race.h"
+#include "../gamemodes/frace.h"
 #include "sql_score.h"
 
 static LOCK gs_SqlLock = 0;
@@ -96,7 +96,7 @@ void CSqlScore::Init()
 			
 			if(m_pResults->next())
 			{
-				((CGameControllerRACE*)GameServer()->m_pController)->m_CurrentRecord = (float)m_pResults->getDouble("Time");
+				((CGameControllerFRACE*)GameServer()->m_pController)->m_CurrentRecord = (float)m_pResults->getDouble("Time");
 				
 				dbg_msg("SQL", "Getting best time on server done");
 			

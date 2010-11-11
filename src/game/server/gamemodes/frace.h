@@ -4,12 +4,12 @@
 
 #include <game/server/gamecontroller.h>
 
-class CGameControllerRACE : public IGameController
+class CGameControllerFRACE : public IGameController
 {
 public:
 	
-	CGameControllerRACE(class CGameContext *pGameServer);
-	~CGameControllerRACE();
+	CGameControllerFRACE(class CGameContext *pGameServer);
+	~CGameControllerFRACE();
 	
 	vec2 *m_pTeleporter;
 	

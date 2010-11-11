@@ -16,8 +16,7 @@
 #include "gamemodes/ctf.h"
 #include "gamemodes/mod.h"*/
 
-#include "gamemodes/race.h"
-#include "gamemodes/fastcap.h"
+#include "gamemodes/frace.h"
 #include "score.h"
 #include "score/sql_score.h"
 #include "score/file_score.h"
@@ -602,7 +601,7 @@ void CGameContext::OnMessage(int MsgId, CUnpacker *pUnpacker, int ClientId)
 			if(!str_comp(pMsg->m_pMessage, "/info"))
 			{
 				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "Race mod %s (C)Rajh v1.0-v1.6 & (C)Redix 2.0-current (%s) (say /mods).", RACE_VERSION, Server()->ClientName(ClientId));
+				str_format(aBuf, sizeof(aBuf), "FreezeRace mod %s by GreYFoXGTi, based on Racemod by (C)Rajh v1.0-v1.6 & (C)Redix & Sushi Tee 2.0-current (%s) (say /mods).", FRACE_VERSION, Server()->ClientName(ClientId));
 				SendChatTarget(-1, aBuf);
 			}
 			else if(!str_comp(pMsg->m_pMessage, "/mods"))
@@ -1207,10 +1206,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		m_pController = new CGameControllerTDM(this);
 	else*/
 	
-	if(str_find_nocase(g_Config.m_SvGametype, "cap"))
-		m_pController = new CGameControllerFC(this);
-	else
-		m_pController = new CGameControllerRACE(this);
+		m_pController = new CGameControllerFRACE(this);
 
 	Server()->SetBrowseInfo(m_pController->m_pGameType, -1);
 

@@ -4,7 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <string.h>
-#include "../gamemodes/race.h"
+#include "../gamemodes/frace.h"
 #include "file_score.h"
 
 static LOCK gs_ScoreLock = 0;
@@ -121,7 +121,7 @@ void CFileScore::Init()
 	
 	// save the current best score
 	if(m_Top.size())
-		((CGameControllerRACE*)GameServer()->m_pController)->m_CurrentRecord = m_Top[0].m_Score;
+		((CGameControllerFRACE*)GameServer()->m_pController)->m_CurrentRecord = m_Top[0].m_Score;
 }
 
 CFileScore::CPlayerScore *CFileScore::SearchScore(int ID, bool ScoreIP, int *pPosition)

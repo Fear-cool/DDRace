@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <engine/shared/config.h>
 #include "score/sql_score.h"
-#include "gamemodes/race.h"
+#include "gamemodes/frace.h"
 #include "player.h"
 
 
@@ -21,10 +21,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int CID, int Team)
 	m_Team = GameServer()->m_pController->ClampTeam(Team);
 	m_LastActionTick = Server()->Tick();
 	
-	if(!g_Config.m_SvShowOthers)
-		m_ShowOthers = false;
-	else
-		m_ShowOthers = true;
+	m_ShowOthers = g_Config.m_SvShowOthers;
 		
 	m_ResetPickups = true;
 	m_IsUsingRaceClient = false;

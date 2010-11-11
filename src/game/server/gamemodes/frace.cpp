@@ -2,21 +2,21 @@
 #include <game/server/entities/character.h>
 #include <game/server/player.h>
 #include <game/server/gamecontext.h>
-#include "race.h"
+#include "frace.h"
 
-CGameControllerRACE::CGameControllerRACE(class CGameContext *pGameServer) : IGameController(pGameServer)
+CGameControllerFRACE::CGameControllerFRACE(class CGameContext *pGameServer) : IGameController(pGameServer)
 {
-	m_pGameType = "Race";
+	m_pGameType = "FRace";
 	
 	InitTeleporter();
 }
 
-CGameControllerRACE::~CGameControllerRACE()
+CGameControllerFRACE::~CGameControllerFRACE()
 {
 	delete[] m_pTeleporter;
 }
 
-void CGameControllerRACE::InitTeleporter()
+void CGameControllerFRACE::InitTeleporter()
 {
 	int ArraySize = 0;
 	if(GameServer()->Collision()->Layers()->TeleLayer())
@@ -46,12 +46,12 @@ void CGameControllerRACE::InitTeleporter()
 	}
 }
 	
-int CGameControllerRACE::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
+int CGameControllerFRACE::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
 {
 	return 0;
 }
 
-void CGameControllerRACE::Tick()
+void CGameControllerFRACE::Tick()
 {
 	IGameController::Tick();
 	
