@@ -18,7 +18,9 @@
 
 #include "gamemodes/frace.h"
 #include "score.h"
+#if defined(CONF_SQL)
 #include "score/sql_score.h"
+#endif
 #include "score/file_score.h"
 
 enum
@@ -989,7 +991,7 @@ void CGameContext::ConTuneDump(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_pController->ChangeMap(pResult->GetString(0));
+	pSelf->m_pController->ChangeMap(pResult->NumArguments() ? pResult->GetString(0) : "");
 }
 
 void CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
@@ -1159,7 +1161,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("tune_reset", "", CFGFLAG_SERVER, ConTuneReset, this, "");
 	Console()->Register("tune_dump", "", CFGFLAG_SERVER, ConTuneDump, this, "");
 
-	Console()->Register("change_map", "r", CFGFLAG_SERVER|CFGFLAG_STORE, ConChangeMap, this, "");
+	Console()->Register("change_map", "?r", CFGFLAG_SERVER|CFGFLAG_STORE, ConChangeMap, this, "");
 	Console()->Register("restart", "?i", CFGFLAG_SERVER|CFGFLAG_STORE, ConRestart, this, "");
 	Console()->Register("broadcast", "r", CFGFLAG_SERVER, ConBroadcast, this, "");
 	Console()->Register("say", "r", CFGFLAG_SERVER, ConSay, this, "");
@@ -1215,9 +1217,11 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		delete m_pScore;
 		
 	// create score object
+#if defined(CONF_SQL)
 	if(g_Config.m_SvUseSQL)
 		m_pScore = new CSqlScore(this);
 	else
+#endif
 		m_pScore = new CFileScore(this);
 		
 	// setup core world

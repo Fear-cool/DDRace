@@ -211,7 +211,7 @@ bool CConsole::LineIsValid(const char *pStr)
 	return true;
 }
 
-void CConsole::ExecuteLineStroked(int Stroke, const char *pStr)
+void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, bool ForceSqlCmd)
 {	
 	while(pStr && *pStr)
 	{
@@ -251,6 +251,21 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr)
 		if(pCommand)
 		{
 			int IsStrokeCommand = 0;
+			
+			// dont allow SQL Commands
+#if defined(CONF_SQL)
+			if(!ForceSqlCmd && !str_comp_num(pResult->m_pCommand, "sv_sql", 6))
+			{
+				if(Stroke) // dont show it twice
+					return;
+				
+				char aBuf[128];
+				str_copy(aBuf, "SQL commands are supposed to be changed in the config file.", sizeof(aBuf));
+				Print(OUTPUT_LEVEL_STANDARD, "Console", aBuf);
+				return;
+			}
+#endif
+
 			if(pResult->m_pCommand[0] == '+')
 			{
 				// insert the stroke direction token
@@ -315,10 +330,10 @@ CConsole::CCommand *CConsole::FindCommand(const char *pName, int FlagMask)
 	return 0x0;
 }
 
-void CConsole::ExecuteLine(const char *pStr)
+void CConsole::ExecuteLine(const char *pStr, bool ForceSqlCmd)
 {
-	CConsole::ExecuteLineStroked(1, pStr); // press it
-	CConsole::ExecuteLineStroked(0, pStr); // then release it
+	CConsole::ExecuteLineStroked(1, pStr, ForceSqlCmd); // press it
+	CConsole::ExecuteLineStroked(0, pStr, ForceSqlCmd); // then release it
 }
 
 
@@ -355,7 +370,7 @@ void CConsole::ExecuteFile(const char *pFilename)
 		lr.Init(File);
 
 		while((pLine = lr.Get()))
-			ExecuteLine(pLine);
+			ExecuteLine(pLine, true);
 
 		io_close(File);
 	}
@@ -506,12 +521,6 @@ void CConsole::ParseArguments(int NumArgs, const char **ppArguments)
 		else if(!str_comp("-s", ppArguments[i]) || !str_comp("--silent", ppArguments[i]))
 		{
 			// skip silent param
-			continue;
-		}
-		else if(ppArguments[i][0] == '-' && ppArguments[i][1] == 'd' && ppArguments[i][2] == 0)
-		{
-			// skip datadir param
-			++i;
 			continue;
 		}
 		else
