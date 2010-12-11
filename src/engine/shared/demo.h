@@ -1,3 +1,5 @@
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #ifndef ENGINE_SHARED_DEMO_H
 #define ENGINE_SHARED_DEMO_H
 
@@ -20,6 +22,7 @@ class CDemoRecorder : public IDemoRecorder
 	IOHANDLE m_File;
 	int m_LastTickMarker;
 	int m_LastKeyFrame;
+	int m_FirstTick;
 	unsigned char m_aLastSnapshotData[CSnapshot::MAX_SIZE];
 	class CSnapshotDelta *m_pSnapshotDelta;
 	
@@ -35,6 +38,8 @@ public:
 	void RecordMessage(const void *pData, int Size);
 
 	bool IsRecording() const { return m_File != 0; }
+
+	int TickCount() const { return m_LastTickMarker - m_FirstTick; }
 };
 
 class CDemoPlayer : public IDemoPlayer

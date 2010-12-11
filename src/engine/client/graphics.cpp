@@ -1,4 +1,5 @@
-// copyright (c) 2007 magnus auvinen, see licence.txt for more info
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
 #include <base/detect.h>
 
@@ -28,7 +29,6 @@
 #include <engine/console.h>
 
 #include <math.h>
-#include <time.h>
 
 #include "graphics.h"
 
@@ -882,28 +882,11 @@ void CGraphics_SDL::Swap()
 {
 	if(m_DoScreenshot)
 	{
-		// find filename
 		char aFilename[128];
-		static int Index = 1;
-
-		time_t Time;
 		char aDate[20];
 
-		time(&Time);
-		tm* TimeInfo = localtime(&Time);
-		strftime(aDate, sizeof(aDate), "%Y-%m-%d_%I-%M", TimeInfo);
-
-		for(; Index < 10000; Index++)
-		{
-			IOHANDLE io;
-			str_format(aFilename, sizeof(aFilename), "screenshots/screenshot%s-%05d.png", aDate, Index);
-			io = m_pStorage->OpenFile(aFilename, IOFLAG_READ, IStorage::TYPE_SAVE);
-			if(io)
-				io_close(io);
-			else
-				break;
-		}
-
+		str_timestamp(aDate, sizeof(aDate));
+		str_format(aFilename, sizeof(aFilename), "screenshots/screenshot_%s.png", aDate);
 		ScreenshotDirect(aFilename);
 		m_DoScreenshot = false;
 	}

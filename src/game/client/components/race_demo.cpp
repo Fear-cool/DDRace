@@ -18,7 +18,7 @@ CRaceDemo::CRaceDemo()
 
 void CRaceDemo::OnRender()
 {
-	if(!g_Config.m_ClAutoRecord || !m_pClient->m_Snap.m_pGameobj || m_pClient->m_Snap.m_Spectate)
+	if(!g_Config.m_ClAutoRaceRecord || !m_pClient->m_Snap.m_pGameobj || m_pClient->m_Snap.m_Spectate)
 	{
 		m_Active = m_pClient->m_Snap.m_aCharacters[m_pClient->m_Snap.m_LocalCid].m_Active;
 		return;
@@ -54,16 +54,12 @@ void CRaceDemo::OnRender()
 
 void CRaceDemo::OnReset()
 {
-	if(m_RaceState > RACE_NONE)
+	if(Client()->DemoIsRecording())
 		Client()->RaceRecordStop();
 	
-	// remove tmp demo
-	if(m_RaceState == RACE_STARTED)
-	{
-		char aFilename[512];
-		str_format(aFilename, sizeof(aFilename), "demos/%s_tmp.demo", m_pMap);
-		Storage()->RemoveFile(aFilename, IStorage::TYPE_SAVE);
-	}
+	char aFilename[512];
+	str_format(aFilename, sizeof(aFilename), "demos/%s_tmp.demo", m_pMap);
+	Storage()->RemoveFile(aFilename, IStorage::TYPE_SAVE);
 
 	m_Time = 0;
 	m_RaceState = RACE_NONE;
@@ -71,9 +67,19 @@ void CRaceDemo::OnReset()
 	m_DemoStartTick = 0;
 }
 
+void CRaceDemo::OnShutdown()
+{
+	if(Client()->DemoIsRecording())
+		Client()->RaceRecordStop();
+		
+	char aFilename[512];
+	str_format(aFilename, sizeof(aFilename), "demos/%s_tmp.demo", m_pMap);
+	Storage()->RemoveFile(aFilename, IStorage::TYPE_SAVE);
+}
+
 void CRaceDemo::OnMessage(int MsgType, void *pRawMsg)
 {
-	if(!g_Config.m_ClAutoRecord || m_pClient->m_Snap.m_Spectate)
+	if(!g_Config.m_ClAutoRaceRecord || m_pClient->m_Snap.m_Spectate)
 		return;
 	
 	// only for race
@@ -129,36 +135,28 @@ void CRaceDemo::CheckDemo()
 	// stop the demo recording
 	Client()->RaceRecordStop();
 	
-	char aDemoName[128];
-	str_format(aDemoName, sizeof(aDemoName), "%s_best_", m_pMap);
+	char aTmpDemoName[128];
+	str_format(aTmpDemoName, sizeof(aTmpDemoName), "%s_tmp", m_pMap);
 	
 	// loop through demo files
 	m_pClient->m_pMenus->DemolistPopulate();
 	for(int i = 0; i < m_pClient->m_pMenus->m_lDemos.size(); i++)
 	{
-		if(!str_comp_num(m_pClient->m_pMenus->m_lDemos[i].m_aName, aDemoName, str_length(aDemoName)))
+		if(!str_comp_num(m_pClient->m_pMenus->m_lDemos[i].m_aName, m_pMap, str_length(m_pMap)) && str_comp_num(m_pClient->m_pMenus->m_lDemos[i].m_aName, aTmpDemoName, str_length(aTmpDemoName)))
 		{
 			const char *pDemo = m_pClient->m_pMenus->m_lDemos[i].m_aName;
 			
 			// set cursor
-			while(str_comp_num(pDemo, "best_", 5))
-			{
-				pDemo++;
-				if(!pDemo[0])
-					return;
-			}
-
-			float DemoTime;
-			sscanf(pDemo, "best_%f", &DemoTime);
+			pDemo += str_length(m_pMap)+1;
+			float DemoTime = str_tofloat(pDemo);
 			if(m_Time < DemoTime)
 			{
 				// save new record
-				SaveDemo(aDemoName);
-				
+				SaveDemo(m_pMap);
+
 				// delete old demo
 				char aFilename[512];
-				dbg_msg("test", "\"%s\"", m_pClient->m_pMenus->m_lDemos[i].m_aName);
-				str_format(aFilename, sizeof(aFilename), "demos/%s", m_pClient->m_pMenus->m_lDemos[i].m_aName);
+				str_format(aFilename, sizeof(aFilename), "demos/%s.demo", m_pClient->m_pMenus->m_lDemos[i].m_aName);
 				Storage()->RemoveFile(aFilename, IStorage::TYPE_SAVE);
 			}
 	
@@ -169,7 +167,7 @@ void CRaceDemo::CheckDemo()
 	}
 	
 	// save demo if there is none
-	SaveDemo(aDemoName);
+	SaveDemo(m_pMap);
 	
 	m_Time = 0;
 }
@@ -178,8 +176,27 @@ void CRaceDemo::SaveDemo(const char* pDemo)
 {
 	char aNewFilename[512];
 	char aOldFilename[512];
-	str_format(aNewFilename, sizeof(aNewFilename), "demos/%s%5.2f.demo", pDemo, m_Time);
+	if(g_Config.m_ClDemoName)
+	{
+		char aPlayerName[MAX_NAME_LENGTH];
+		str_copy(aPlayerName, m_pClient->m_aClients[m_pClient->m_Snap.m_LocalCid].m_aName, sizeof(aPlayerName));
+		
+		// check the player name
+		for(int i = 0; i < MAX_NAME_LENGTH; i++)
+		{
+			if(!aPlayerName[i])
+				break;
+			
+			if(aPlayerName[i] == '\\' || aPlayerName[i] == '/' || aPlayerName[i] == '|' || aPlayerName[i] == ':' || aPlayerName[i] == '*' || aPlayerName[i] == '?' || aPlayerName[i] == '<' || aPlayerName[i] == '>' || aPlayerName[i] == '"')
+				aPlayerName[i] = '%';
+				
+			str_format(aNewFilename, sizeof(aNewFilename), "demos/%s_%5.2f_%s.demo", pDemo, m_Time, aPlayerName);
+		}
+	}
+	else
+		str_format(aNewFilename, sizeof(aNewFilename), "demos/%s_%5.2f.demo", pDemo, m_Time);
+	
 	str_format(aOldFilename, sizeof(aOldFilename), "demos/%s_tmp.demo", m_pMap);
-
+	
 	Storage()->RenameFile(aOldFilename, aNewFilename, IStorage::TYPE_SAVE);
 }

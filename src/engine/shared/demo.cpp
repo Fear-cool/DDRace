@@ -1,3 +1,5 @@
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/system.h>
 #include <engine/console.h>
 #include <engine/shared/protocol.h>
@@ -103,6 +105,7 @@ int CDemoRecorder::Start(class IStorage *pStorage, class IConsole *pConsole, con
 	
 	m_LastKeyFrame = -1;
 	m_LastTickMarker = -1;
+	m_FirstTick = -1;
 	
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "Recording to '%s'", pFilename);
@@ -162,6 +165,8 @@ void CDemoRecorder::WriteTickMarker(int Tick, int Keyframe)
 	}	
 
 	m_LastTickMarker = Tick;
+	if(m_FirstTick < 0)
+		m_FirstTick = Tick;
 }
 
 void CDemoRecorder::Write(int Type, const void *pData, int Size)

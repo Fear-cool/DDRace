@@ -1,3 +1,5 @@
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <new>
 #include <stdio.h>
 #include <string.h>
@@ -690,9 +692,33 @@ void CCharacter::Tick()
 	
 	if((GameServer()->Collision()->GetCollisionRace(TileIndex) == TILE_BEGIN && (!m_aWeapons[WEAPON_GRENADE].m_Got || (m_RaceState != RACE_FINISHED && m_RaceState != RACE_STARTED))))
 	{
+		/*
+		// create flag
+		if(GameServer()->m_pController->IsFastCap())
+		{
+			m_pFlag = new CFlag(GameWorld(), (m_pPlayer->GetTeam()+1)&1, m_Pos, this);
+			
+			// sound
+			GameServer()->CreateSoundGlobal(SOUND_CTF_GRAB_EN, m_pPlayer->GetCID());
+		}
+		
+		if(m_RaceState != RACE_NONE)
+		{
+			// reset pickups
+			if(!m_aWeapons[WEAPON_GRENADE].m_Got)
+				m_pPlayer->m_ResetPickups = true;
+				
+			// reset shield
+			if(!GameServer()->m_pController->IsFastCap())
+				m_Armor = 0;
+		}
+		*/
+			
+		/*
 		// reset pickups
 		if(!m_aWeapons[WEAPON_GRENADE].m_Got)
 			m_pPlayer->m_ResetPickups = true;
+		*/
 			
 		m_Starttime = Server()->Tick();
 		m_Refreshtime = Server()->Tick();

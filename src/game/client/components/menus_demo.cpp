@@ -1,3 +1,5 @@
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
 #include <base/math.h>
 
@@ -171,7 +173,10 @@ void CMenus::RenderDemoPlayer(CUIRect MainView)
 			if(pInfo->m_Speed > 4.0f) DemoPlayer()->SetSpeed(4.0f);
 			else if(pInfo->m_Speed > 2.0f) DemoPlayer()->SetSpeed(2.0f);
 			else if(pInfo->m_Speed > 1.0f) DemoPlayer()->SetSpeed(1.0f);
+			else if(pInfo->m_Speed > 0.75f) DemoPlayer()->SetSpeed(0.75f);
 			else if(pInfo->m_Speed > 0.5f) DemoPlayer()->SetSpeed(0.5f);
+			else if(pInfo->m_Speed > 0.25f) DemoPlayer()->SetSpeed(0.25f);
+			else if(pInfo->m_Speed > 0.1f) DemoPlayer()->SetSpeed(0.1f);
 			else DemoPlayer()->SetSpeed(0.05f);
 		}
 		
@@ -181,7 +186,10 @@ void CMenus::RenderDemoPlayer(CUIRect MainView)
 		static int s_FastForwardButton = 0;
 		if(DoButton_DemoPlayer_Sprite(&s_FastForwardButton, SPRITE_DEMOBUTTON_FASTER, 0, &Button))
 		{
-			if(pInfo->m_Speed < 0.5f) DemoPlayer()->SetSpeed(0.5f);
+			if(pInfo->m_Speed < 0.1f) DemoPlayer()->SetSpeed(0.1f);
+			else if(pInfo->m_Speed < 0.25f) DemoPlayer()->SetSpeed(0.25f);
+			else if(pInfo->m_Speed < 0.5f) DemoPlayer()->SetSpeed(0.5f);
+			else if(pInfo->m_Speed < 0.75f) DemoPlayer()->SetSpeed(0.75f);
 			else if(pInfo->m_Speed < 1.0f) DemoPlayer()->SetSpeed(1.0f);
 			else if(pInfo->m_Speed < 2.0f) DemoPlayer()->SetSpeed(2.0f);
 			else if(pInfo->m_Speed < 4.0f) DemoPlayer()->SetSpeed(4.0f);
@@ -194,7 +202,7 @@ void CMenus::RenderDemoPlayer(CUIRect MainView)
 		if(pInfo->m_Speed >= 1.0f)
 			str_format(aBuffer, sizeof(aBuffer), "x%.0f", pInfo->m_Speed);
 		else
-			str_format(aBuffer, sizeof(aBuffer), "x%.1f", pInfo->m_Speed);
+			str_format(aBuffer, sizeof(aBuffer), "x%.2f", pInfo->m_Speed);
 		UI()->DoLabel(&ButtonBar, aBuffer, Button.h*0.7f, -1);
 
 		// close button
@@ -436,11 +444,8 @@ void CMenus::DemolistFetchCallback(const char *pName, int IsDir, int StorageType
 	}
 	else
 	{
-		str_format(Item.m_aName, min(static_cast<int>(sizeof(Item.m_aName)), Length+1), "%s", pName);
-		char aBuffer[512];
-		str_format(aBuffer, sizeof(aBuffer), "%s/%s", pSelf->m_aCurrentDemoFolder, Item.m_aFilename);
-		// TODO: many items slow this down, don't load the info from every file when making the filelist
-		Item.m_Valid = pSelf->DemoPlayer()->GetDemoInfo(pSelf->Storage(), aBuffer, StorageType, Item.m_aMap, sizeof(Item.m_aMap));
+		str_copy(Item.m_aName, pName, min(static_cast<int>(sizeof(Item.m_aName)), Length-4));
+		Item.m_InfosLoaded = false;
 	}
 	Item.m_IsDir = IsDir != 0;
 	Item.m_StorageType = StorageType;
@@ -479,9 +484,11 @@ void CMenus::RenderDemoList(CUIRect MainView)
 		{
 			char aBuf[512];
 			str_format(aBuf, sizeof(aBuf), "%s/%s", m_aCurrentDemoFolder, m_lDemos[m_DemolistSelectedIndex].m_aFilename);
-			Storage()->RemoveFile(aBuf, m_lDemos[m_DemolistSelectedIndex].m_StorageType);
-			DemolistPopulate();
-			DemolistOnUpdate(false);
+			if(Storage()->RemoveFile(aBuf, m_lDemos[m_DemolistSelectedIndex].m_StorageType))
+			{
+				DemolistPopulate();
+				DemolistOnUpdate(false);
+			}
 		}
 		m_DemolistDelEntry = false;
 	}
@@ -489,14 +496,25 @@ void CMenus::RenderDemoList(CUIRect MainView)
 	char aFooterLabel[128] = {0};
 	if(m_DemolistSelectedIndex >= 0)
 	{
-		if(str_comp(m_lDemos[m_DemolistSelectedIndex].m_aFilename, "..") == 0)
+		CDemoItem *Item = &m_lDemos[m_DemolistSelectedIndex];
+		if(str_comp(Item->m_aFilename, "..") == 0)
 			str_copy(aFooterLabel, Localize("Parent Folder"), sizeof(aFooterLabel));
 		else if(m_DemolistSelectedIsDir)
 			str_copy(aFooterLabel, Localize("Folder"), sizeof(aFooterLabel));
-		else if(!m_lDemos[m_DemolistSelectedIndex].m_Valid)
+		else
+		{
+			if(!Item->m_InfosLoaded)
+			{
+				char aBuffer[512];
+				str_format(aBuffer, sizeof(aBuffer), "%s/%s", m_aCurrentDemoFolder, Item->m_aFilename);
+				Item->m_Valid = DemoPlayer()->GetDemoInfo(Storage(), aBuffer, Item->m_StorageType, Item->m_aMap, sizeof(Item->m_aMap));
+				Item->m_InfosLoaded = true;
+			}
+			if(!Item->m_Valid)
 			str_copy(aFooterLabel, Localize("Invalid Demo"), sizeof(aFooterLabel));
 		else
-			str_format(aFooterLabel, sizeof(aFooterLabel), "%s: %s", Localize("Map"), m_lDemos[m_DemolistSelectedIndex].m_aMap);
+				str_format(aFooterLabel, sizeof(aFooterLabel), "%s: %s", Localize("Map"), Item->m_aMap);
+	}
 	}
 	
 	// render background
@@ -561,7 +579,7 @@ void CMenus::RenderDemoList(CUIRect MainView)
 				str_format(aBuf, sizeof(aBuf), "%s/%s", m_aCurrentDemoFolder, m_lDemos[m_DemolistSelectedIndex].m_aFilename);
 				const char *pError = Client()->DemoPlayer_Play(aBuf, m_lDemos[m_DemolistSelectedIndex].m_StorageType);
 				if(pError)
-					PopupMessage(Localize("Error"), str_comp(pError, "error loading demo") ? pError : Localize("error loading demo"), Localize("Ok"));
+					PopupMessage(Localize("Error"), str_comp(pError, "error loading demo") ? pError : Localize("Error loading demo"), Localize("Ok"));
 				else
 				{
 					UI()->SetActiveItem(0);

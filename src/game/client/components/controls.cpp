@@ -1,3 +1,5 @@
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/math.h>
 
 #include <engine/shared/config.h>
@@ -32,7 +34,8 @@ void CControls::OnReset()
 
 void CControls::OnPlayerDeath()
 {
-	m_LastData.m_WantedWeapon = m_InputData.m_WantedWeapon = 0;
+	if(!m_pClient->m_IsRace)
+		m_LastData.m_WantedWeapon = m_InputData.m_WantedWeapon = 0;
 }
 
 static void ConKeyInputState(IConsole::IResult *pResult, void *pUserData)
@@ -195,7 +198,7 @@ void CControls::OnRender()
 
 bool CControls::OnMouseMove(float x, float y)
 {
-	if(m_pClient->m_Snap.m_pGameobj && m_pClient->m_Snap.m_pGameobj->m_Paused)
+	if((m_pClient->m_Snap.m_pGameobj && m_pClient->m_Snap.m_pGameobj->m_Paused) || (m_pClient->m_Snap.m_Spectate && m_pClient->m_pChat->IsActive()))
 		return false;
 	m_MousePos += vec2(x, y); // TODO: ugly
 

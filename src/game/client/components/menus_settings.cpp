@@ -1,3 +1,5 @@
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
 #include <base/math.h>
 
@@ -114,8 +116,8 @@ void CMenus::RenderSettingsPlayer(CUIRect MainView)
 
             if(g_Config.m_PlayerUseCustomColor)
             {
-                OwnSkinInfo.m_ColorBody = m_pClient->m_pSkins->GetColor(g_Config.m_PlayerColorBody);
-                OwnSkinInfo.m_ColorFeet = m_pClient->m_pSkins->GetColor(g_Config.m_PlayerColorFeet);
+                OwnSkinInfo.m_ColorBody = m_pClient->m_pSkins->GetColorV4(g_Config.m_PlayerColorBody);
+                OwnSkinInfo.m_ColorFeet = m_pClient->m_pSkins->GetColorV4(g_Config.m_PlayerColorFeet);
                 OwnSkinInfo.m_Texture = pOwnSkin->m_ColorTexture;
             }
 
@@ -248,8 +250,8 @@ void CMenus::RenderSettingsPlayer(CUIRect MainView)
 
 				if(g_Config.m_PlayerUseCustomColor)
 				{
-					Info.m_ColorBody = m_pClient->m_pSkins->GetColor(g_Config.m_PlayerColorBody);
-					Info.m_ColorFeet = m_pClient->m_pSkins->GetColor(g_Config.m_PlayerColorFeet);
+					Info.m_ColorBody = m_pClient->m_pSkins->GetColorV4(g_Config.m_PlayerColorBody);
+					Info.m_ColorFeet = m_pClient->m_pSkins->GetColorV4(g_Config.m_PlayerColorFeet);
 					Info.m_Texture = s->m_ColorTexture;
 				}
 
@@ -259,9 +261,10 @@ void CMenus::RenderSettingsPlayer(CUIRect MainView)
 
 				if(g_Config.m_Debug)
 				{
+					vec3 BloodColor = g_Config.m_PlayerUseCustomColor ? m_pClient->m_pSkins->GetColorV3(g_Config.m_PlayerColorBody) : s->m_BloodColor;
 					Graphics()->TextureSet(-1);
 					Graphics()->QuadsBegin();
-					Graphics()->SetColor(s->m_BloodColor.r, s->m_BloodColor.g, s->m_BloodColor.b, 1.0f);
+					Graphics()->SetColor(BloodColor.r, BloodColor.g, BloodColor.b, 1.0f);
 					IGraphics::CQuadItem QuadItem(Item.m_Rect.x, Item.m_Rect.y, 12, 12);
 					Graphics()->QuadsDrawTL(&QuadItem, 1);
 					Graphics()->QuadsEnd();
@@ -666,8 +669,16 @@ void CMenus::RenderSettingsRace(CUIRect MainView)
 	UI()->DoLabel(&Button, Localize("Race specific settings"), 14.0f, -1);
 	
 	LeftView.HSplitTop(20.0f, &Button, &LeftView);
-	if(DoButton_CheckBox(&g_Config.m_ClAutoRecord, Localize("Auto record"), g_Config.m_ClAutoRecord, &Button))
-		g_Config.m_ClAutoRecord ^= 1;
+	if(DoButton_CheckBox(&g_Config.m_ClAutoRaceRecord, Localize("Auto record"), g_Config.m_ClAutoRaceRecord, &Button))
+		g_Config.m_ClAutoRaceRecord ^= 1;
+	
+	if(g_Config.m_ClAutoRaceRecord)
+	{
+		LeftView.HSplitTop(20.0f, &Button, &LeftView);
+		Button.VSplitLeft(15.0f, 0, &Button);
+		if(DoButton_CheckBox(&g_Config.m_ClDemoName, Localize("Save player name"), g_Config.m_ClDemoName, &Button))
+			g_Config.m_ClDemoName ^= 1;
+	}
 		
 	LeftView.HSplitTop(20.0f, &Button, &LeftView);
 	if(DoButton_CheckBox(&g_Config.m_ClShowOthers, Localize("Show other players"), g_Config.m_ClShowOthers, &Button))
@@ -787,7 +798,14 @@ void CMenus::RenderSettingsGeneral(CUIRect MainView)
 
 	int OldSelected = s_SelectedLanguage;
 
-	CUIRect List = MainView;
+	CUIRect List, Button;
+	MainView.HSplitBottom(10.0f, &MainView, 0);
+	MainView.HSplitBottom(20.0f, &MainView, &Button);
+	MainView.HSplitBottom(20.0f, &List, &MainView);
+
+	if(DoButton_CheckBox(&g_Config.m_ClAutoDemoRecord, Localize("Automatically record demos"), g_Config.m_ClAutoDemoRecord, &Button))
+		g_Config.m_ClAutoDemoRecord ^= 1;
+
 	UiDoListboxStart(&s_LanguageList , &List, 24.0f, Localize("Language"), "", s_Languages.size(), 1, s_SelectedLanguage, s_ScrollValue);
 
 	for(sorted_array<CLanguage>::range r = s_Languages.all(); !r.empty(); r.pop_front())

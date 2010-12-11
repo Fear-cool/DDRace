@@ -1,5 +1,5 @@
-// copyright (c) 2007 magnus auvinen, see licence.txt for more info
-#include <stdio.h> //remove()
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/system.h>
 #include <engine/storage.h>
 #include "engine.h"
@@ -279,27 +279,25 @@ public:
 			return false;
 
 		char aBuffer[MAX_PATH_LENGTH];
-		return remove(GetPath(Type, pFilename, aBuffer, sizeof(aBuffer)));
+		return !fs_remove(GetPath(Type, pFilename, aBuffer, sizeof(aBuffer)));
 	}
 
-	virtual bool RenameFile(const char *pOldFilename, const char *pNewFilename, int Type)
+	virtual bool RenameFile(const char* pOldFilename, const char* pNewFilename, int Type)
 	{
 		if(Type < 0 || Type >= m_NumPaths)
 			return false;
-
 		char aOldBuffer[MAX_PATH_LENGTH];
 		char aNewBuffer[MAX_PATH_LENGTH];
-		rename(GetPath(Type, pOldFilename, aOldBuffer, sizeof(aOldBuffer)), GetPath(Type, pNewFilename, aNewBuffer, sizeof(aNewBuffer)));
-		return remove(GetPath(Type, pOldFilename, aOldBuffer, sizeof(aOldBuffer)));
+		return !fs_rename(GetPath(Type, pOldFilename, aOldBuffer, sizeof(aOldBuffer)), GetPath(Type, pNewFilename, aNewBuffer, sizeof (aNewBuffer)));
 	}
-	
+
 	virtual bool CreateFolder(const char *pFoldername, int Type)
 	{
 		if(Type < 0 || Type >= m_NumPaths)
 			return false;
 
 		char aBuffer[MAX_PATH_LENGTH];
-		return fs_makedir(GetPath(Type, pFoldername, aBuffer, sizeof(aBuffer)));
+		return !fs_makedir(GetPath(Type, pFoldername, aBuffer, sizeof(aBuffer)));
 	}
 
 	static IStorage *Create(const char *pApplicationName, int NumArgs, const char **ppArguments)

@@ -1,3 +1,5 @@
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #ifndef ENGINE_CLIENT_H
 #define ENGINE_CLIENT_H
 #include "kernel.h"
@@ -74,7 +76,8 @@ public:
 	virtual void Disconnect() = 0;
 	virtual void Quit() = 0;
 	virtual const char *DemoPlayer_Play(const char *pFilename, int StorageType) = 0;
-	virtual void DemoRecorder_Start(const char *pFilename) = 0;
+	virtual void DemoRecorder_Start(const char *pFilename, bool WithTimestamp) = 0;
+	virtual void DemoRecorder_Stop() = 0;
 
 	// networking
 	virtual void EnterGame() = 0;
@@ -130,6 +133,7 @@ public:
 	virtual const char* GetCurrentMap() = 0;
 	virtual const char* RaceRecordStart(const char *pFilename) = 0;
 	virtual void RaceRecordStop() = 0;
+	virtual bool DemoIsRecording() = 0;
 };
 
 class IGameClient : public IInterface
